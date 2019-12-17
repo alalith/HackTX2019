@@ -1,0 +1,70 @@
+<style>
+#map { height: 100%; } html, body { height: 100%; margin: 0; padding: 0; }
+</style>
+<body onload="getLocation()">
+<div id="map"></div>
+</body>
+<!-- Replace the value of the key parameter with your own API key. --> <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAZaFHUnNYraowWTpa9d73lX02iwp_aLJ0&libraries=places,directions&callback=initMap" async defer></script>
+	<script>
+		var service;
+		var map;
+		var chicago;
+		var directionsService;
+		var directionsRender;
+		function initMap() { 
+		  map = new google.maps.Map(document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 8 }); 
+		  directionsService = new google.maps.DirectionsService();
+		  directionsRenderer = new google.maps.DirectionsRenderer();
+		  chicago = new google.maps.LatLng(41.850033, -87.6500523);
+		  var mapOptions = {
+		    zoom:7,
+		    center: chicago
+		  }
+		  directionsRenderer.setMap(map);
+		}
+		function getLocation() {
+			var url = window.location.href;
+			var loc = url.match(/=.*\&/)[0].substring(1);
+			var dist = url.match(/=\d*$/)[0].substring(1);
+			loc = loc.substring(0,loc.length-1);
+			loc = loc.replace(/\+/g," ");
+			console.log(loc);
+			console.log(dist);
+			var request = {
+			  query: loc,
+			  fields: ['name', 'geometry'],
+			};
+
+			service = new google.maps.places.PlacesService(map);
+			var location;
+			service.findPlaceFromQuery(request, function(results, status) {
+			  if (status === google.maps.places.PlacesServiceStatus.OK) {
+			   location = results[0].geometry.location;
+			   map.setCenter(results[0].geometry.location);
+			   console.log(location.lat());
+			   const offsetLng = location.lng()+(dist/2* 0.85)/(69.04* Math.cos(location.lat() * Math.PI / 180))
+			   var walk = new google.maps.LatLng(location.lat(), offsetLng);
+			   console.log(walk.lat()+ " " + walk.lng()); 
+			   var waypts = [];
+			   waypts.push({
+				   location: walk,
+				   stopover: false
+			   });
+			   var req = {
+			   origin: location,
+			   destination: location,
+		           waypoints: waypts,
+			   travelMode: 'WALKING'
+			  };
+			  directionsService.route(req, function(result, status) {
+			    if (status == 'OK') {
+			      directionsRenderer.setDirections(result);
+			    }
+				console.log(result);
+			  });
+			  }
+			});
+
+		}
+
+	</script>
