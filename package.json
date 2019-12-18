@@ -1,0 +1,22 @@
+{
+  "name": "hacktx",
+  "version": "1.0.0",
+  "description": "Originally the project made for HackTX 2019. A web app that gives you a pedestratian safe running route giving a distance and location.",
+  "main": "server.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alalith/HackTX2019.git"
+  },
+  "author": "Arjun Lalith",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alalith/HackTX2019/issues"
+  },
+  "homepage": "https://github.com/alalith/HackTX2019#readme"
+}
