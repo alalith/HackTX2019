@@ -63,10 +63,10 @@ function getLocation(location, distance) {
 		}
 	});
 }
-app.post('/map', urlencodedParser, (req, res) => {
+app.post('/', urlencodedParser, (req, res) => {
 	console.log(req.body);
 	getLocation(req.body.location, req.body.distance);
-	res.end(mapHTML.serialize());
+	res.status(204).send();
 
 });
 app.get('/', (req, res) => {
