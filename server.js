@@ -77,7 +77,7 @@ async function getRoute(location, distance) {
 				}
 			});	
 			console.log(estDist);
-			if(estDist <= 3) {
+			if(estDist <= distance) {
 				return walk;
 				routeNotFound = false;
 				console.log(estDist);
