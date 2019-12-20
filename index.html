@@ -45,11 +45,18 @@
 	var directionsService;
 	var directionsRender;
 	function initMap() { 
-	  map = new google.maps.Map(document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 8 }); 
-	  directionsService = new google.maps.DirectionsService();
-	  directionsRenderer = new google.maps.DirectionsRenderer();
-	  chicago = new google.maps.LatLng(41.850033, -87.6500523);
-	  directionsRenderer.setMap(map);
+		map = new google.maps.Map(document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 18 }); 
+		directionsService = new google.maps.DirectionsService();
+		service = new google.maps.places.PlacesService(map);
+		directionsRenderer = new google.maps.DirectionsRenderer();
+		chicago = new google.maps.LatLng(41.850033, -87.6500523);
+		directionsRenderer.setMap(map);
+		var input = document.getElementById('location');
+		var options = {
+			types: ['address']
+		};
+		autocomplete = new google.maps.places.Autocomplete(input, options);
+
 	}
 	function getLocation() {
 		var url = window.location.href;
@@ -63,43 +70,58 @@
 		  query: loc,
 		  fields: ['name', 'geometry'],
 		};
-		service = new google.maps.places.PlacesService(map);
 		var location;
 		service.findPlaceFromQuery(request, function(results, status) {
 		  if (status === google.maps.places.PlacesServiceStatus.OK) {
-		   location = results[0].geometry.location;
-		   map.setCenter(results[0].geometry.location);
-		   console.log(location.lat());
-		   const offsetLng = location.lng()+(dist/2* 0.85)/(69.04* Math.cos(location.lat() * Math.PI / 180))
-		   var walk = new google.maps.LatLng(location.lat(), offsetLng);
-		   console.log(walk.lat()+ " " + walk.lng()); 
-		   var waypts = [];
-		   waypts.push({
-			   location: walk,
-			   stopover: false
-		   });
-		   var req = {
-		   origin: location,
-		   destination: location,
-		   waypoints: waypts,
-		   travelMode: 'WALKING'
-		  };
-		  directionsService.route(req, function(result, status) {
-		    if (status == 'OK') {
-		      directionsRenderer.setDirections(result);
-		    }
-			console.log(result);
-		  });
+			location = results[0].geometry.location;
+			map.setCenter(results[0].geometry.location);
+			console.log(location.lat());
+			const offsetLng = location.lng()+(dist/2* 0.85)/(69.04* Math.cos(location.lat() * Math.PI / 180))
+			var walk = new google.maps.LatLng(location.lat(), offsetLng);
+			console.log(walk.lat()+ " " + walk.lng()); 
+			var waypts = [];
+			waypts.push({
+				location: walk,
+				stopover: false
+			});
+			var req = {
+				origin: location,
+				destination: location,
+				waypoints: waypts,
+				travelMode: 'WALKING'
+			};
+			directionsService.route(req, function(result, status) {
+				if (status == 'OK') {
+					directionsRenderer.setDirections(result);
+				}
+				console.log(result);
+			});
 		  }
+		});
+	}
+	function centerMap() {
+		var loc =  document.getElementById("location").value;
+		console.log(loc);
+		var request = {
+		  query: loc,
+		  fields: ['name', 'geometry'],
+		};
+		service.findPlaceFromQuery(request, (results, status) => {
+			if (status === google.maps.places.PlacesServiceStatus.OK) {
+				map.setCenter(results[0].geometry.location);
+			}
+			else {
+				console.log(status);
+			}
 		});
 	}
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7PnTQN6XswlPgL-bWVPkP0X6dgJWv6Gk&libraries=places,directions&callback=initMap" async defer></script>
 </head>
-<body onload="getLocation()">
+<body>
 <div id="map"></div>
   <main class="text_input mdl-layout__content">
-	<form class="textfield" action="/" method="POST">
+	<div class="textfield">
 	  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
 	    <input class="mdl-textfield__input" type="text" id="location" name="location">
 	    <label class="mdl-textfield__label" for="location">Enter Address</label>
@@ -108,11 +130,10 @@
 	    <input class="mdl-textfield__input" type="text" id="distance" name="distance">
 	    <label class="mdl-textfield__label" for="distance">Enter Distance (mi.)</label>
 	  </div>
-	  <label class="mdl-button mdl-js-button mdl-button--icon" for ="search">
+	  <label class="mdl-button mdl-js-button mdl-button--icon" onclick="centerMap()" for ="search">
 		  <i class="material-icons">search</i>
 	  </label>
-	  <input class="submitButton" type="submit" id="search">
-	</form>
+	</div>
   </main>
 </body>
 

@@ -13,8 +13,8 @@ const googleMapsClient = require('@google/maps').createClient({
 app.use("/imgs", express.static('./imgs'));
 var urlencodedParser = bodyParser.urlencoded ({ extended: false});
 var main= fs.readFileSync('./index.html');
-var mapFile = fs.readFileSync('./map.html');
-var mapHTML = new JSDOM(mapFile.toString());
+//var mapFile = fs.readFileSync('./map.html');
+//var mapHTML = new JSDOM(mapFile.toString());
 var mainHTML = new JSDOM(main.toString());
 var service;
 var map;
@@ -22,7 +22,7 @@ var chicago;
 var directionsService;
 var directionsRender;
 function initMap() { 
-	map = new googleMapsClient.maps.Map(mapHTML.window.document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 8 }); 
+	//map = new googleMapsClient.maps.Map(mapHTML.window.document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 8 }); 
 	directionsService = new googleMapsClient.maps.DirectionsService();
 	directionsRenderer = new googleMapsClient.maps.DirectionsRenderer();
 	chicago = new googleMapsClient.maps.LatLng(41.850033, -87.6500523);
