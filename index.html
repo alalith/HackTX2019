@@ -44,6 +44,7 @@
 	var chicago;
 	var directionsService;
 	var directionsRender;
+	var xhttp;
 	function initMap() { 
 		map = new google.maps.Map(document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 18 }); 
 		directionsService = new google.maps.DirectionsService();
@@ -56,14 +57,20 @@
 			types: ['address']
 		};
 		autocomplete = new google.maps.places.Autocomplete(input, options);
+		xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = () => {
+			if(this.readyState == 4 && this.status == 200) {
+				console.log(xhttp.response);
+			}
+		};
+		xhttp.open("POST", "/", true);
+		xhttp.setRequestHeader("Content-type", "application/json");
 
 	}
 	function getLocation() {
 		var url = window.location.href;
-		var loc = url.match(/=.*\&/)[0].substring(1);
-		var dist = url.match(/=\d*$/)[0].substring(1);
-		loc = loc.substring(0,loc.length-1);
-		loc = loc.replace(/\+/g," ");
+		var loc =  document.getElementById("location").value;
+		var dist = document.getElementById("distance").value;
 		console.log(loc);
 		console.log(dist);
 		var request = {
@@ -94,13 +101,14 @@
 				if (status == 'OK') {
 					directionsRenderer.setDirections(result);
 				}
-				console.log(result);
+				console.log(result["routes"][0]["bounds"].toString());
 			});
 		  }
 		});
 	}
 	function centerMap() {
 		var loc =  document.getElementById("location").value;
+		var dist = document.getElementById("distance").value;
 		console.log(loc);
 		var request = {
 		  query: loc,
@@ -114,9 +122,39 @@
 				console.log(status);
 			}
 		});
+		$.ajax({
+			type: 'POST',
+			url: '/',
+			data: JSON.stringify({"location": loc, "distance": dist}),
+			contentType: 'application/json',
+			dataType: 'json',
+			async: true,
+			success: (response)  =>  {
+				let modifiedRes = response;
+				let walk = new google.maps.LatLng(response.lat, response.lng);
+				let waypts = [];
+				waypts.push({
+					location: walk,
+					stopover: false
+				});
+				let req = {
+					origin: loc,
+					destination: loc,
+					waypoints: waypts,
+					travelMode: 'WALKING'
+				};
+				directionsService.route(req, (result, status) => {
+					if (status == 'OK') {
+						directionsRenderer.setDirections(result);
+					}
+				});
+			}
+
+		});
 	}
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7PnTQN6XswlPgL-bWVPkP0X6dgJWv6Gk&libraries=places,directions&callback=initMap" async defer></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 <body>
 <div id="map"></div>

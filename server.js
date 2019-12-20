@@ -8,10 +8,11 @@ const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const app = express();
 const googleMapsClient = require('@google/maps').createClient({
-	key: 'AIzaSyAZaFHUnNYraowWTpa9d73lX02iwp_aLJ0'
+	key: 'AIzaSyCvHT2yfFAaFsifg5nvyYQe9QwRLtB7JPE',
+	Promise : Promise
 });
 app.use("/imgs", express.static('./imgs'));
-var urlencodedParser = bodyParser.urlencoded ({ extended: false});
+var urlencodedParser = bodyParser.json({ extended: false});
 var main= fs.readFileSync('./index.html');
 //var mapFile = fs.readFileSync('./map.html');
 //var mapHTML = new JSDOM(mapFile.toString());
@@ -25,14 +26,24 @@ function initMap() {
 	//map = new googleMapsClient.maps.Map(mapHTML.window.document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 8 }); 
 	directionsService = new googleMapsClient.maps.DirectionsService();
 	directionsRenderer = new googleMapsClient.maps.DirectionsRenderer();
-	chicago = new googleMapsClient.maps.LatLng(41.850033, -87.6500523);
+	chicago = { lat: 41.850033, lng: -87.6500523 };
 	var mapOptions = {
 	zoom:7,
 	center: chicago
 	}
 	directionsRenderer.setMap(map);
 }
-function getLocation(location, distance) {
+function calcRouteDistance(route) {
+	var legs = route.legs;
+	var totalDistance = 0;
+	for(var i=0; i < legs.length; i++) {
+		totalDistance += legs[i].distance.value/1609.34;
+
+	}
+	return totalDistance;
+
+}
+async function getRoute(location, distance) {
 	var request = {
 		input: location,
 		inputtype: 'textquery',
@@ -40,33 +51,53 @@ function getLocation(location, distance) {
 		fields: ['name', 'geometry'],
 	};
 
-	googleMapsClient.findPlace(request, (results, status) => {
-		if (status === googleMapsClient.maps.places.PlacesServiceStatus.OK) {
-			var locationCoords = results[0].geometry.location;
-			map.setCenter(locationCoords);
-			console.log(locationCoords.lat());
-			const offsetLng = locationCoords.lng()+(dist/2* 0.85)/(69.04* Math.cos(locationCoords.lat() * Math.PI / 180))
-			var walk = new googleMapsClient.maps.LatLng(locationCoords.lat(), offsetLng);
-			console.log(walk.lat()+ " " + walk.lng()); 
-			var waypts = [];
-			waypts.push({
-				location: walk,
-				stopover: false
-			});
-			var req = {
+	const response = await googleMapsClient.findPlace(request).asPromise().then((response) => { return response });
+	if(response.status == 200) {
+		let routeNotFound = true;
+		let weight = 1;
+		while(routeNotFound) {
+			let locationCoords = response.json.candidates[0].geometry.location;
+			const offsetLat = locationCoords.lat+distance/2/69*weight;
+			let walk = { lat: offsetLat, lng: locationCoords.lng };
+			let req = {
 				origin: locationCoords,
 				destination: locationCoords,
-				waypoints: waypts,
-				travelMode: 'WALKING'
+				waypoints: [walk],
+				mode: 'walking'
 			};
-			googleMapsClient.directions(req);
+
+			let estDist = await googleMapsClient.directions(req)
+			.asPromise()
+			.then( (res) => {
+				if (res.status == 200) {
+					return calcRouteDistance(res.json.routes[0]);	
+				}
+				else {
+					console.log(result);
+				}
+			});	
+			console.log(estDist);
+			if(estDist <= 3) {
+				return walk;
+				routeNotFound = false;
+				console.log(estDist);
+			}
+			else {
+				weight -= 0.03;
+			}
+			
 		}
-	});
+	}
+	else {
+		console.log(response.status == 200);
+	}
 }
 app.post('/', urlencodedParser, (req, res) => {
 	console.log(req.body);
-	getLocation(req.body.location, req.body.distance);
-	res.status(204).send();
+	getRoute(req.body.location, req.body.distance).then( (route) => {
+		//console.log(route);
+		res.status(200).send(route);
+	});
 
 });
 app.get('/', (req, res) => {
