@@ -122,35 +122,37 @@
 				console.log(status);
 			}
 		});
-		$.ajax({
-			type: 'POST',
-			url: '/',
-			data: JSON.stringify({"location": loc, "distance": dist}),
-			contentType: 'application/json',
-			dataType: 'json',
-			async: true,
-			success: (response)  =>  {
-				let modifiedRes = response;
-				let walk = new google.maps.LatLng(response.lat, response.lng);
-				let waypts = [];
-				waypts.push({
-					location: walk,
-					stopover: false
-				});
-				let req = {
-					origin: loc,
-					destination: loc,
-					waypoints: waypts,
-					travelMode: 'WALKING'
-				};
-				directionsService.route(req, (result, status) => {
-					if (status == 'OK') {
-						directionsRenderer.setDirections(result);
-					}
-				});
-			}
+		if(dist <= 10) {
+			$.ajax({
+				type: 'POST',
+				url: '/',
+				data: JSON.stringify({"location": loc, "distance": dist}),
+				contentType: 'application/json',
+				dataType: 'json',
+				async: true,
+				success: (response)  =>  {
+					let modifiedRes = response;
+					let walk = new google.maps.LatLng(response.lat, response.lng);
+					let waypts = [];
+					waypts.push({
+						location: walk,
+						stopover: false
+					});
+					let req = {
+						origin: loc,
+						destination: loc,
+						waypoints: waypts,
+						travelMode: 'WALKING'
+					};
+					directionsService.route(req, (result, status) => {
+						if (status == 'OK') {
+							directionsRenderer.setDirections(result);
+						}
+					});
+				}
 
-		});
+			});
+		}
 	}
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7PnTQN6XswlPgL-bWVPkP0X6dgJWv6Gk&libraries=places,directions&callback=initMap" async defer></script>
