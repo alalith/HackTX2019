@@ -13,14 +13,33 @@
      your background is light. */
   color: white;
 }
+.distance-card {
+	position: absolute;
+	bottom: 0;
+	display: flex;
+	visibility: hidden;
+	flex-direction: row;
+	min-height: 50px;
+	min-width: 200px;
+	width: 200px;
+}
 .textfield {
-	margin-left: 25%;
+	justify-content: center;
 	background-color: white;
 	border-radius: 10px;
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	padding: 2px;
+	position: relative;
+}
+.errorLabel {
+	font-size: 1em;
+	visibility: hidden;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	color: red;
 }
 .submitButton {
 	margin-left: 2vw;
@@ -33,6 +52,10 @@
 .text_input {
 	position: absolute;
 	top: 0;
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 #search {
 	display: none;
@@ -57,54 +80,7 @@
 			types: ['address']
 		};
 		autocomplete = new google.maps.places.Autocomplete(input, options);
-		xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = () => {
-			if(this.readyState == 4 && this.status == 200) {
-				console.log(xhttp.response);
-			}
-		};
-		xhttp.open("POST", "/", true);
-		xhttp.setRequestHeader("Content-type", "application/json");
 
-	}
-	function getLocation() {
-		var url = window.location.href;
-		var loc =  document.getElementById("location").value;
-		var dist = document.getElementById("distance").value;
-		console.log(loc);
-		console.log(dist);
-		var request = {
-		  query: loc,
-		  fields: ['name', 'geometry'],
-		};
-		var location;
-		service.findPlaceFromQuery(request, function(results, status) {
-		  if (status === google.maps.places.PlacesServiceStatus.OK) {
-			location = results[0].geometry.location;
-			map.setCenter(results[0].geometry.location);
-			console.log(location.lat());
-			const offsetLng = location.lng()+(dist/2* 0.85)/(69.04* Math.cos(location.lat() * Math.PI / 180))
-			var walk = new google.maps.LatLng(location.lat(), offsetLng);
-			console.log(walk.lat()+ " " + walk.lng()); 
-			var waypts = [];
-			waypts.push({
-				location: walk,
-				stopover: false
-			});
-			var req = {
-				origin: location,
-				destination: location,
-				waypoints: waypts,
-				travelMode: 'WALKING'
-			};
-			directionsService.route(req, function(result, status) {
-				if (status == 'OK') {
-					directionsRenderer.setDirections(result);
-				}
-				console.log(result["routes"][0]["bounds"].toString());
-			});
-		  }
-		});
 	}
 	function centerMap() {
 		var loc =  document.getElementById("location").value;
@@ -123,6 +99,7 @@
 			}
 		});
 		if(dist <= 10) {
+			document.getElementsByClassName("errorLabel")[0].style.visibility = "hidden";
 			$.ajax({
 				type: 'POST',
 				url: '/',
@@ -131,13 +108,19 @@
 				dataType: 'json',
 				async: true,
 				success: (response)  =>  {
-					let modifiedRes = response;
-					let walk = new google.maps.LatLng(response.lat, response.lng);
+					if(!response) {
+						return;
+					}
 					let waypts = [];
-					waypts.push({
-						location: walk,
-						stopover: false
-					});
+					document.getElementsByClassName("distance-card")[0].style.visibility = "visible";
+					document.getElementsByClassName("distance-number")[0].textContent = response.distance.toFixed(2) + " mi.";
+					for(let i = 0; i < response.waypts.length; i++) {
+						waypts.push({
+							location: new google.maps.LatLng(response.waypts[i].lat, response.waypts[i].lng),
+							stopover: false
+						});
+
+					}
 					let req = {
 						origin: loc,
 						destination: loc,
@@ -153,27 +136,35 @@
 
 			});
 		}
+		else {
+			document.getElementsByClassName("errorLabel")[0].style.visibility = "visible";
+		}
 	}
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7PnTQN6XswlPgL-bWVPkP0X6dgJWv6Gk&libraries=places,directions&callback=initMap" async defer></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 <body>
-<div id="map"></div>
-  <main class="text_input mdl-layout__content">
-	<div class="textfield">
-	  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-	    <input class="mdl-textfield__input" type="text" id="location" name="location">
-	    <label class="mdl-textfield__label" for="location">Enter Address</label>
-	  </div>
-	  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-	    <input class="mdl-textfield__input" type="text" id="distance" name="distance">
-	    <label class="mdl-textfield__label" for="distance">Enter Distance (mi.)</label>
-	  </div>
-	  <label class="mdl-button mdl-js-button mdl-button--icon" onclick="centerMap()" for ="search">
-		  <i class="material-icons">search</i>
-	  </label>
+	<div id="map"></div>
+	<main class="text_input mdl-layout__content">
+		<div class="textfield">
+		  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+		    <input class="mdl-textfield__input" type="text" id="location" name="location">
+		    <label class="mdl-textfield__label" for="location">Enter Address</label>
+		  </div>
+		  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+		    <input class="mdl-textfield__input" type="text" id="distance" name="distance">
+		    <label class="mdl-textfield__label" for="distance">Enter Distance (mi.)</label>
+		    <label class="errorLabel">Please enter a distance below 10 mi.</label>
+		  </div>
+		  <label class="mdl-button mdl-js-button mdl-button--icon" onclick="centerMap()" for ="search">
+			  <i class="material-icons">search</i>
+		  </label>
+		</div>
+	</main>
+	<div class="distance-card mdl-card mdl-shadow--3dp">
+		<div class="mdl-card__title">Distance:</div>
+		<div class="distance-number mdl-card__title">3</div>
 	</div>
-  </main>
 </body>
 

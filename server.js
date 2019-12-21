@@ -22,16 +22,15 @@ var map;
 var chicago;
 var directionsService;
 var directionsRender;
-function initMap() { 
-	//map = new googleMapsClient.maps.Map(mapHTML.window.document.getElementById('map'), { center: {lat: -34.397, lng: 150.644}, zoom: 8 }); 
-	directionsService = new googleMapsClient.maps.DirectionsService();
-	directionsRenderer = new googleMapsClient.maps.DirectionsRenderer();
-	chicago = { lat: 41.850033, lng: -87.6500523 };
-	var mapOptions = {
-	zoom:7,
-	center: chicago
-	}
-	directionsRenderer.setMap(map);
+function generateWaypts(homeLoc,weight, distance) {
+			const northLat = homeLoc.lat+distance/4/69*weight;
+			const eastLng = homeLoc.lng+distance/4/69/Math.cos(homeLoc.lat)*weight;
+			let northwaypt = { lat: northLat, lng: homeLoc.lng };
+			let northeastwaypt = { lat: northLat, lng: eastLng };
+			let eastwaypt = { lat: homeLoc.lat, lng: eastLng };
+			waypts = [northwaypt, northeastwaypt, eastwaypt];
+			return waypts;
+
 }
 function calcRouteDistance(route) {
 	var legs = route.legs;
@@ -57,12 +56,12 @@ async function getRoute(location, distance) {
 		let weight = 1;
 		while(routeNotFound) {
 			let locationCoords = response.json.candidates[0].geometry.location;
-			const offsetLat = locationCoords.lat+distance/2/69*weight;
-			let walk = { lat: offsetLat, lng: locationCoords.lng };
+			let waypts = generateWaypts(locationCoords,weight, distance);
+
 			let req = {
 				origin: locationCoords,
 				destination: locationCoords,
-				waypoints: [walk],
+				waypoints: waypts,
 				mode: 'walking'
 			};
 
@@ -76,9 +75,9 @@ async function getRoute(location, distance) {
 					console.log(result);
 				}
 			});	
-			console.log(estDist);
-			if(estDist <= distance) {
-				return walk;
+			console.log(estDist.toFixed(2));
+			if(estDist.toFixed(2) <= parseInt(distance)+0.3) {
+				return { waypts: waypts, distance: estDist};
 				routeNotFound = false;
 				console.log(estDist);
 			}
@@ -94,10 +93,15 @@ async function getRoute(location, distance) {
 }
 app.post('/', urlencodedParser, (req, res) => {
 	console.log(req.body);
-	getRoute(req.body.location, req.body.distance).then( (route) => {
-		//console.log(route);
-		res.status(200).send(route);
-	});
+	if(req.body.distance > 10) {
+		res.status(200).send();
+	}
+	else {
+		getRoute(req.body.location, req.body.distance).then( (route) => {
+			//console.log(route);
+			res.status(200).send(route);
+		});
+	}
 
 });
 app.get('/', (req, res) => {
