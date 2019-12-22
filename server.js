@@ -24,11 +24,22 @@ var directionsService;
 var directionsRender;
 function generateWaypts(homeLoc,weight, distance) {
 			const northLat = homeLoc.lat+distance/4/69*weight;
+			const southLat = homeLoc.lat-distance/4/69*weight;
 			const eastLng = homeLoc.lng+distance/4/69/Math.cos(homeLoc.lat)*weight;
+			const westLng = homeLoc.lng-distance/4/69/Math.cos(homeLoc.lat)*weight;
 			let northwaypt = { lat: northLat, lng: homeLoc.lng };
+			let southwaypt = { lat: southLat, lng: homeLoc.lng };
+			let southeastwaypt = { lat:southLat, lng: eastLng };
+			let southwestwaypt = { lat: southLat, lng: westLng };
 			let northeastwaypt = { lat: northLat, lng: eastLng };
+			let northwestwaypt = { lat: northLat, lng: westLng };
+			let westwaypt = { lat: homeLoc.lat, lng: westLng };
 			let eastwaypt = { lat: homeLoc.lat, lng: eastLng };
-			waypts = [northwaypt, northeastwaypt, eastwaypt];
+			let waypts = []
+			waypts.push([northwaypt, northeastwaypt, eastwaypt]);
+			waypts.push([northwaypt, northwestwaypt, westwaypt]);
+			waypts.push([southwaypt, southeastwaypt, eastwaypt]);
+			waypts.push([southwaypt, southwestwaypt, westwaypt]);
 			return waypts;
 
 }
@@ -57,38 +68,40 @@ async function getRoute(location, distance) {
 		while(routeNotFound) {
 			let locationCoords = response.json.candidates[0].geometry.location;
 			let waypts = generateWaypts(locationCoords,weight, distance);
+			console.log('trying with weight: ' + weight);
 
-			let req = {
-				origin: locationCoords,
-				destination: locationCoords,
-				waypoints: waypts,
-				mode: 'walking'
-			};
+			for(let i = 0; i< waypts.length; i++ )  {
+				let req = {
+					origin: locationCoords,
+					destination: locationCoords,
+					waypoints: waypts[i],
+					mode: 'walking'
+				};
 
-			let estDist = await googleMapsClient.directions(req)
-			.asPromise()
-			.then( (res) => {
-				if (res.status == 200) {
-					return calcRouteDistance(res.json.routes[0]);	
+				let estDist = await googleMapsClient.directions(req)
+				.asPromise()
+				.then( (res) => {
+					if (res.status == 200) {
+						//console.log(res.json.routes[0].legs[0].steps);
+						return calcRouteDistance(res.json.routes[0]);	
+					}
+					else {
+						console.log(result);
+					}
+				});	
+				console.log(estDist.toFixed(2));
+				if(estDist.toFixed(2) <= parseInt(distance)+0.3) {
+					return { waypts: waypts[i], distance: estDist};
+					routeNotFound = false;
+					console.log(estDist);
 				}
-				else {
-					console.log(result);
-				}
-			});	
-			console.log(estDist.toFixed(2));
-			if(estDist.toFixed(2) <= parseInt(distance)+0.3) {
-				return { waypts: waypts, distance: estDist};
-				routeNotFound = false;
-				console.log(estDist);
 			}
-			else {
-				weight -= 0.03;
-			}
+			weight -= 0.03;
 			
 		}
 	}
 	else {
-		console.log(response.status == 200);
+		console.log(response.status);
 	}
 }
 app.post('/', urlencodedParser, (req, res) => {
